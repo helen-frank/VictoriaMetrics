@@ -78,6 +78,11 @@
       "line": 460
     },
     {
+      "file": "lib/protoparser/common/unmarshal_work.go",
+      "description": "异步并发运行unmarshal任务",
+      "line": 24
+    },
+    {
       "file": "lib/promscrape/scrapework.go",
       "description": "海量数据处理",
       "line": 526

@@ -1,0 +1,91 @@
+{
+  "$schema": "https://aka.ms/codetour-schema",
+  "title": "promscrape",
+  "steps": [
+    {
+      "file": "app/vmagent/main.go",
+      "description": "promscrape 入口",
+      "line": 148
+    },
+    {
+      "file": "lib/promscrape/scraper.go",
+      "description": "设置集群id",
+      "line": 64
+    },
+    {
+      "file": "lib/promscrape/scraper.go",
+      "description": "根据不同的云厂商配置构建scrape work",
+      "line": 125
+    },
+    {
+      "file": "lib/promscrape/scraper.go",
+      "description": "热加载配置",
+      "line": 152
+    },
+    {
+      "file": "lib/promscrape/scraper.go",
+      "description": "add 时开始抓取",
+      "line": 139
+    },
+    {
+      "file": "lib/promscrape/scraper.go",
+      "description": "启动抓取",
+      "line": 242
+    },
+    {
+      "file": "lib/promscrape/scraper.go",
+      "description": "更新抓取工作函数",
+      "line": 283
+    },
+    {
+      "file": "lib/promscrape/scraper.go",
+      "description": "更新采集工作, 等待上一次的采集任务结束并停止后再更新",
+      "line": 364
+    },
+    {
+      "file": "lib/promscrape/scraper.go",
+      "description": "每隔SDCheckInterval(默认是30s), 开始下一次轮训",
+      "line": 297
+    },
+    {
+      "file": "lib/promscrape/scraper.go",
+      "description": "实际运行任务",
+      "line": 418
+    },
+    {
+      "file": "lib/promscrape/scrapework.go",
+      "description": "使用sync.Pool降低高频采集任务的内存gc",
+      "line": 310
+    },
+    {
+      "file": "lib/promscrape/scrapework.go",
+      "description": "首先，方法从 scrapeWork 结构体的 Config 字段中获取 scrapeInterval、scrapeAlignInterval 和 scrapeOffset。如果 scrapeOffset 大于 0，那么 scrapeAlignInterval 将被设置为 scrapeInterval 的值。\n\n接下来，如果 scrapeAlignInterval 小于或等于 0，方法将计算第一次抓取的开始时间。这个计算过程包括生成一个键，该键由集群名称、集群成员 ID、抓取 URL 和标签组成。然后，使用 xxhash 对键进行哈希处理，并根据哈希值和抓取间隔计算出随机睡眠时间 randSleep。如果 randSleep 小于 sleepOffset，则将抓取间隔添加到 randSleep 中。最后，从 randSleep 中减去 sleepOffset。\n\n如果 scrapeAlignInterval 大于 0，那么 randSleep 将被设置为 scrapeAlignInterval 减去当前时间与 scrapeAlignInterval 的余数。如果 scrapeOffset 大于 0，那么 scrapeOffset 将被添加到 randSleep 中。最后，randSleep 将被设置为它与 scrapeInterval 的余数。\n\n然后，方法从 timerpool 获取一个定时器，该定时器的持续时间为 randSleep。然后，方法进入一个选择结构，如果从 stopCh 接收到消息，那么方法将返回并将定时器放回 timerpool。如果定时器到期，那么方法将创建一个新的定时器，并开始执行抓取工作",
+      "line": 323
+    },
+    {
+      "file": "lib/promscrape/scrapework.go",
+      "description": "采集入口",
+      "line": 321
+    },
+    {
+      "file": "lib/promscrape/client.go",
+      "description": "读取远程数据",
+      "line": 109
+    },
+    {
+      "file": "lib/promscrape/scrapework.go",
+      "description": "少量数据处理\n\n这段代码是在 Go 语言中定义的一个名为 processDataOneShot 的方法，它是 scrapeWork 结构体的一部分。这个方法的主要目的是处理从网络抓取的数据，并将其转换为适合进一步处理的格式。\n\n首先，方法接收几个参数，包括抓取时间戳、实际时间戳、抓取的数据体、抓取持续时间和可能存在的错误。然后，它从 writeRequestCtxPool 获取一个 writeRequestCtx 对象，该对象用于后续的数据处理。\n\n接下来，方法检查是否存在错误。如果存在错误，它会将 up 设置为 0，并增加失败的抓取计数。如果没有错误，它会将抓取的数据体解析为行，并将这些行添加到时间序列中。\n\n然后，方法检查抓取的样本数量是否超过了配置的样本限制。如果超过了样本限制，它会重置 writeRequestCtx，将 up 设置为 0，并增加由于样本限制而跳过的抓取计数。同时，它会生成一个错误，指出响应超过了样本限制。\n\n接下来，方法检查是否添加了新的系列，并应用系列限制。如果超过了系列限制或者添加了新的系列，它会计算并记录下被丢弃的样本数量。\n\n然后，方法创建一个 autoMetrics 对象，该对象包含了一些自动收集的指标，如抓取状态、抓取持续时间、抓取的样本数量、标签重命名后的样本数量、添加的系列数量和由于超过系列限制而丢弃的样本数量。\n\n最后，方法将这些自动收集的指标添加到 scrapeWork，并将数据推送到配置的目标。然后，它会更新 scrapeWork 的一些状态，如上一次抓取的标签数量和响应体长度。然后，它会重置 writeRequestCtx 并将其放回到池中。如果添加了新的系列，它会发送过时的标记，并存储最后的抓取结果。最后，它会更新全局的时间序列指标，并返回可能存在的错误。",
+      "line": 460
+    },
+    {
+      "file": "lib/promscrape/scrapework.go",
+      "description": "海量数据处理",
+      "line": 526
+    },
+    {
+      "file": "lib/protoparser/prometheus/parser.go",
+      "description": "检测两个序列化后的prometheus 是否是同一结构",
+      "line": 528
+    }
+  ]
+}

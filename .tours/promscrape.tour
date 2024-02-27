@@ -8,6 +8,16 @@
       "line": 148
     },
     {
+      "file": "lib/promscrape/config.go",
+      "description": "这段 Go 代码定义了一个名为 getScrapeWork 的函数，它是 scrapeWorkConfig 结构体的方法。这个函数接收一个目标字符串，额外的标签，元标签，并返回一个 ScrapeWork 结构体的指针和一个错误。\n\n这个函数的主要工作是处理和配置抓取（scrape）工作。在 Prometheus 中，抓取工作是指从目标服务中获取指标数据。这个函数首先获取一组标签，然后将这些标签与其他标签进行合并。然后，它会应用一些重标签（relabel）配置，移除以 \"_meta\" 开头的标签，并检查标签的数量。如果没有标签，它会将目标丢弃并返回。\n\n接下来，它会检查是否需要跳过抓取工作，这取决于 -promscrape.cluster.* 配置。如果集群成员数量大于1，它会获取抓取工作的集群成员编号，如果当前集群成员ID不在这些编号中，它会将目标丢弃并返回。\n\n然后，它会获取抓取的 URL，如果没有 URL，它会将目标丢弃并返回。如果 URL 无法解析，它会返回一个错误。\n\n接着，它会从标签中读取租户ID，如果存在，它会创建一个新的认证令牌。然后，它会从标签中读取抓取间隔、抓取超时、系列限制和流解析选项。\n\n最后，它会移除以 \"__\" 开头的标签，添加缺失的 \"instance\" 标签，添加集群成员标签（如果存在），然后对标签进行排序，减少内存使用，并创建一个 ScrapeWork 结构体的实例，然后返回这个实例和一个 nil 错误。\n\n这个函数的主要目的是配置和准备抓取工作，包括处理标签，验证 URL，处理认证，读取和设置各种配置选项，以及创建和返回一个 ScrapeWork 结构体的实例。",
+      "line": 1085
+    },
+    {
+      "file": "lib/promscrape/config.go",
+      "description": "这段 Go 代码定义了一个名为 getClusterMemberNumsForScrapeWork 的函数。这个函数接收一个键（key）字符串，成员数量（membersCount）和副本数量（replicasCount）作为参数，并返回一个整数数组。\n\n如果成员数量小于或等于1，函数会直接返回一个只包含0的数组。这是因为在这种情况下，只有一个成员，所以成员编号（member number）只能是0。\n\n接下来，函数使用 xxhash 算法计算键的哈希值。xxhash 是一种非常快速的哈希算法，常用于大数据和实时系统。然后，它使用哈希值对成员数量取模，得到一个索引值（idx）。这个索引值将用于确定哪个成员应该处理抓取工作。\n\n如果副本数量小于1，函数会将其设置为1。这是因为至少需要一个副本来处理抓取工作。\n\n然后，函数创建一个长度为副本数量的整数数组 memberNums，并在一个循环中为数组的每个元素赋值。在每次迭代中，它都会将当前的索引值赋给数组的当前元素，然后将索引值增加1。如果索引值大于或等于成员数量，它会将索引值重置为0。这样可以确保索引值始终在有效的成员编号范围内。\n\n最后，函数返回 memberNums 数组。这个数组包含了应该处理抓取工作的成员的编号。\n\n总的来说，这个函数的目的是根据给定的键，成员数量和副本数量，确定哪些成员应该处理抓取工作。",
+      "line": 1063
+    },
+    {
       "file": "lib/promscrape/scraper.go",
       "description": "设置集群id",
       "line": 64
@@ -59,13 +69,18 @@
     },
     {
       "file": "lib/promscrape/scrapework.go",
-      "description": "首先，方法从 scrapeWork 结构体的 Config 字段中获取 scrapeInterval、scrapeAlignInterval 和 scrapeOffset。如果 scrapeOffset 大于 0，那么 scrapeAlignInterval 将被设置为 scrapeInterval 的值。\n\n接下来，如果 scrapeAlignInterval 小于或等于 0，方法将计算第一次抓取的开始时间。这个计算过程包括生成一个键，该键由集群名称、集群成员 ID、抓取 URL 和标签组成。然后，使用 xxhash 对键进行哈希处理，并根据哈希值和抓取间隔计算出随机睡眠时间 randSleep。如果 randSleep 小于 sleepOffset，则将抓取间隔添加到 randSleep 中。最后，从 randSleep 中减去 sleepOffset。\n\n如果 scrapeAlignInterval 大于 0，那么 randSleep 将被设置为 scrapeAlignInterval 减去当前时间与 scrapeAlignInterval 的余数。如果 scrapeOffset 大于 0，那么 scrapeOffset 将被添加到 randSleep 中。最后，randSleep 将被设置为它与 scrapeInterval 的余数。\n\n然后，方法从 timerpool 获取一个定时器，该定时器的持续时间为 randSleep。然后，方法进入一个选择结构，如果从 stopCh 接收到消息，那么方法将返回并将定时器放回 timerpool。如果定时器到期，那么方法将创建一个新的定时器，并开始执行抓取工作",
+      "description": "首先，方法从 scrapeWork 结构体的 Config 字段中获取 scrapeInterval、scrapeAlignInterval 和 scrapeOffset。如果 scrapeOffset 大于 0，那么 scrapeAlignInterval 将被设置为 scrapeInterval 的值。\n\n接下来，如果 scrapeAlignInterval 小于或等于 0，方法将计算第一次抓取的开始时间。这个计算过程包括生成一个键，该键由集群名称、集群成员 ID、抓取 URL 和标签组成。然后，使用 xxhash 对键进行哈希处理，并根据哈希值和抓取间隔计算出随机睡眠时间 randSleep。如果 randSleep 小于 sleepOffset，则将抓取间隔添加到 randSleep 中。最后，从 randSleep 中减去 sleepOffset。\n\n如果 scrapeAlignInterval 大于 0，那么 randSleep 将被设置为 scrapeAlignInterval 减去当前时间与 scrapeAlignInterval 的余数。如果 scrapeOffset 大于 0，那么 scrapeOffset 将被添加到 randSleep 中。最后，randSleep 将被设置为它与 scrapeInterval 的余数。\n\n然后，方法从 timerpool 获取一个定时器，该定时器的持续时间为 randSleep。然后，方法进入一个选择select, 如果从 stopCh 接收到消息，那么方法将返回并将定时器放回 timerpool。如果定时器到期，那么方法将创建一个新的定时器，并开始执行抓取工作",
       "line": 323
     },
     {
       "file": "lib/promscrape/scrapework.go",
       "description": "采集入口",
       "line": 321
+    },
+    {
+      "file": "lib/promscrape/scrapework.go",
+      "description": "这段代码是在处理一种特殊情况，即当从同一目标获取的连续两次抓取结果中的时间序列不完全相同时。这可能是因为某些指标在两次抓取之间消失了。\n\n首先，if !areIdenticalSeries 这行代码检查两次抓取的结果是否完全相同。如果不同，那么就会执行以下的代码块。\n\n在这个代码块中，首先调用 sw.sendStaleSeries(lastScrape, bodyString, realTimestamp, false) 方法。这个方法的作用是发送\"stale markers\"，也就是过时标记。这些标记用于标记那些在上一次抓取中存在，但在当前抓取中消失的指标。这样做的目的是确保查询不会返回这些已经消失的指标的数据。这个方法的参数包括上一次抓取的结果、当前抓取的结果、实际的抓取时间戳，以及一个布尔值，表示是否添加自动系列。\n\n然后，调用 sw.storeLastScrape(body) 方法，将当前的抓取结果存储起来，以便在下一次抓取时使用。这样做的目的是为了在下一次抓取时，能够比较新的抓取结果和这次的抓取结果，从而确定哪些指标是新出现的，哪些指标已经消失。\n\n总的来说，这段代码的目的是处理那些在连续的两次抓取中消失的指标，通过发送过时标记来确保查询不会返回这些已经消失的指标的数据，并将当前的抓取结果存储起来，以便在下一次抓取时使用。",
+      "line": 515
     },
     {
       "file": "lib/promscrape/client.go",
@@ -78,19 +93,49 @@
       "line": 460
     },
     {
+      "file": "lib/protoparser/prometheus/parser.go",
+      "description": "为metric数据结构特写的unmarshal函数",
+      "line": 226
+    },
+    {
+      "file": "lib/protoparser/prometheus/parser.go",
+      "description": "主要作用是找出两个字符串中的差异行，可以用于比较两个字符串的内容差异。",
+      "line": 402
+    },
+    {
+      "file": "app/vmagent/remotewrite/remotewrite.go",
+      "description": "这段代码定义了一个名为 tryPush 的函数，它尝试将 Prometheus 写请求（prompbmarshal.WriteRequest）推送到远程存储。这个函数接收三个参数：一个身份验证令牌（auth.Token），一个写请求，以及一个布尔值，表示在失败时是否丢弃样本。\n\n首先，函数检查是否启用了多租户功能，如果启用并且没有提供身份验证令牌，那么数据将写入默认租户。\n\n接着，函数根据是否提供了身份验证令牌和是否配置了多租户 URL，来决定如何获取 remoteWriteCtx（远程写上下文）的列表。如果没有提供身份验证令牌，那么将使用默认的 remoteWriteCtx。如果提供了身份验证令牌但没有配置多租户 URL，那么也将使用默认的 remoteWriteCtx，并且会创建一个 relabelCtx（重标签上下文）来将身份验证令牌转换为标签。如果提供了身份验证令牌并且配置了多租户 URL，那么将从 rwctxsMap（一个映射租户 ID 到 remoteWriteCtx 列表的映射）中获取对应的 remoteWriteCtx 列表，如果映射中没有，那么将创建一个新的 remoteWriteCtx 列表并添加到映射中。\n\n然后，函数检查是否禁用了磁盘队列。如果禁用了磁盘队列，那么函数会快速检查是否阻塞了对配置的远程存储系统的写操作。如果某个远程存储系统无法跟上数据摄取速率，那么可以通过这种方式节省在重标签和块压缩上花费的 CPU 时间。如果写操作被阻塞，那么函数会增加失败计数，如果在失败时设置为丢弃样本，那么函数会增加丢弃的样本数并返回 true，否则返回 false。\n\n接下来，函数会处理全局的重标签配置。如果存在全局的重标签配置，那么函数会创建一个新的 relabelCtx。\n\n然后，函数会处理时间序列数据。函数会将大的时间序列数据分割成较小的块以减少最大内存使用。对于每个块，如果存在租户的 relabelCtx，那么函数会将租户 ID 转换为标签。如果存在全局的 relabelCtx，那么函数会应用全局的重标签配置。然后，函数会根据需要对标签进行排序，并限制序列的基数。最后，函数会尝试将块推送到远程存储。\n\n如果推送失败并且没有禁用磁盘队列，那么函数会记录一个错误。如果在失败时设置为丢弃样本，那么函数会增加丢弃的样本数并返回 true，否则返回 false。\n\n如果所有的时间序列数据都成功推送到远程存储，那么函数会返回 true。",
+      "line": 390
+    },
+    {
       "file": "lib/protoparser/common/unmarshal_work.go",
       "description": "异步并发运行unmarshal任务",
       "line": 24
     },
     {
       "file": "lib/promscrape/scrapework.go",
-      "description": "海量数据处理",
+      "description": "大量数据处理\n\n这段代码是在流模式下处理抓取数据的函数。它接收四个参数：抓取时间戳、实际时间戳、字节缓冲区的体和抓取持续时间。函数首先初始化一些变量，包括抓取的样本数、标签重命名后的样本数、写请求上下文等。\n\n然后，函数加载最后一次抓取的数据，并将字节缓冲区转换为字符串。接着，函数检查最后一次抓取的数据和当前抓取的数据是否为同一系列。如果不是，将会在后续处理中丢弃一些样本。\n\n接下来，函数创建一个新的读取器来读取字节缓冲区的内容，并使用互斥锁来保证在解析过程中的线程安全。在解析过程中，函数会遍历每一行数据，将其添加到时间序列中，并更新样本数。如果标签重命名后的样本数超过了配置的样本限制，函数会重置写请求上下文，并跳过此次抓取。如果超过了系列限制或者当前抓取的数据和最后一次抓取的数据不是同一系列，函数会应用系列限制并更新丢弃的样本数。\n\n在解析完成后，函数会将收集到的数据推送到远程存储，并更新抓取的样本数。如果在解析过程中出现错误，函数会将抓取状态标记为失败，并增加失败的抓取数。如果当前抓取的数据和最后一次抓取的数据不是同一系列，函数会计算添加的系列数。\n\n然后，函数会创建一个自动度量结构体，用于存储抓取的状态、持续时间、样本数等信息，并将其添加到抓取工作中。函数还会更新上一次抓取的标签长度和响应体长度。\n\n最后，如果当前抓取的数据和最后一次抓取的数据不是同一系列，函数会发送过期标记，并存储当前抓取的数据。函数还会更新全局的时间序列度量，并返回解析过程中的错误。",
       "line": 526
     },
     {
       "file": "lib/protoparser/prometheus/parser.go",
-      "description": "检测两个序列化后的prometheus 是否是同一结构",
+      "description": "检测两个序列化后的prometheus 是否是同一结构\n\n这个函数 AreIdenticalSeriesFast 是用来比较两个 Prometheus 序列（s1 和 s2）是否相同的。这个函数主要是针对速度进行优化的。\n\n函数的主体是一个无限循环，它会一直运行，直到函数返回一个结果。首先，函数检查 s1 和 s2 的长度。如果 s1 的长度为 0，那么它会检查 s2 的长度是否也为 0。如果 s2 的长度也为 0，那么函数返回 true，表示两个序列都是空的，因此它们是相同的。如果 s2 的长度不为 0，那么函数返回 false，表示 s1 是空的，但 s2 不是，因此它们不同。如果 s1 的长度不为 0，但 s2 的长度为 0，那么函数也返回 false，表示 s2 是空的，但 s1 不是。\n\n接下来，函数从 s1 和 s2 中提取下一对行。它首先查找 s1 中的 '\\n' 字符的位置，然后根据这个位置将 s1 分割成两部分：x1（'\\n' 之前的部分）和新的 s1（'\\n' 之后的部分）。然后，它在 x1 中查找 '#' 字符的位置，如果找到，那么它会将 x1 从 '#' 字符开始的部分丢弃，因为这部分是注释。函数对 s2 也执行相同的操作，得到 x2 和新的 s2。\n\n然后，函数会跳过行前的空格。如果 x1 和 x2 的第一个字符不都是空格，那么函数返回 false，表示它们不同。如果 x1 和 x2 的长度都为 0，那么函数继续下一次循环。如果 x1 的长度为 0，但 x2 的长度不为 0，或者 x2 的长度为 0，但 x1 的长度不为 0，那么函数返回 false。\n\n接下来，函数比较度量名称。它首先在 x1 中查找 ' ' 字符的位置，然后根据这个位置将 x1 和 x2 分割成两部分：度量名称和剩余的部分。如果度量名称不同，那么函数返回 false。\n\n然后，函数继续比较剩余的部分，直到遇到空格或换行符。在这个过程中，函数会跳过数值部分（可能是时间戳前的值）。如果 x1 和 x2 的非数值部分不同，那么函数返回 false。\n\n总的来说，这个函数通过比较两个 Prometheus 序列的每一部分（包括度量名称、注释、空格和数值）来判断它们是否相同",
       "line": 528
+    },
+    {
+      "file": "app/vmagent/remotewrite/remotewrite.go",
+      "description": "将推送失败的数据暂存到tmpDataPath里(默认是vmagent-remotewrite-data)",
+      "line": 685
+    },
+    {
+      "file": "lib/logger/logger.go",
+      "description": "这段代码定义了一个名为logMessage的函数，该函数接收三个参数：日志级别（level）、日志消息（msg）和跳过的堆栈帧数（skipframes）。这个函数的主要目的是生成和输出日志消息。\n\n首先，函数检查是否禁用了时间戳。如果没有禁用，它将生成一个时间戳。然后，它将日志级别转换为小写。\n\n接下来，函数使用runtime.Caller函数获取调用者的详细信息，包括文件名和行号。如果无法获取这些信息，函数将文件名设置为\"???\"，行号设置为0。然后，函数检查文件路径是否包含\"/VictoriaMetrics/\"，如果包含，就将其剥离。\n\n然后，函数检查日志级别是否为\"ERROR\"或\"WARN\"。如果是，它将获取对应的每秒错误或警告限制，并检查是否需要抑制该位置的日志消息。如果需要抑制，函数将直接返回。否则，如果存在抑制消息，它将抑制消息添加到日志消息的前面。\n\n接下来，函数将删除日志消息末尾的所有换行符。然后，根据日志格式（loggerFormat）和是否禁用了时间戳，函数将生成日志消息。\n\n然后，函数将日志消息写入输出。为了避免并发写入时的数据竞争，函数在写入前后分别加锁和解锁。\n\n接下来，函数将增加名为vm_log_messages_total的计数器。计数器的名称包含应用版本、日志级别和位置信息。\n\n最后，如果日志级别为\"PANIC\"或\"FATAL\"，函数将执行相应的操作。如果日志级别为\"PANIC\"，并且日志格式为\"json\"，函数将退出程序。否则，它将引发一个新的panic。如果日志级别为\"FATAL\"，函数将退出程序。",
+      "line": 224
+    },
+    {
+      "file": "app/vmagent/remotewrite/remotewrite.go",
+      "description": "这段代码定义了一个名为newRemoteWriteCtx的函数，它用于创建一个新的remoteWriteCtx实例。remoteWriteCtx是一个自定义的结构体类型，用于管理远程写入的上下文。\n\n函数接收四个参数：argIdx（一个整数，表示参数索引），remoteWriteURL（一个URL，表示远程写入的URL），maxInmemoryBlocks（一个整数，表示内存中的最大块数），以及sanitizedURL（一个字符串，表示经过清理的URL）。\n\n函数首先复制remoteWriteURL，并清除其查询参数和片段，以防止更改参数时重置队列。然后，它使用xxhash算法计算URL的哈希值，并将其与argIdx和其他路径元素一起用于生成队列路径。\n\n接着，函数检查每个URL的最大待处理字节数。如果这个值不为0且小于默认的块文件大小，那么它会被设置为默认的块文件大小，并记录一条警告日志。\n\n然后，函数打开一个快速队列，并创建几个度量标准，用于监控队列的状态。\n\n接下来，函数根据URL的协议（HTTP或HTTPS）创建一个新的HTTP客户端，并初始化它。\n\n然后，函数初始化一系列待处理的序列。它首先获取可用的CPU数量，如果队列长度大于CPU数量，那么队列长度将被设置为CPU数量。然后，它创建一个新的待处理序列数组，并为每个元素创建一个新的待处理序列。\n\n接着，函数创建一个新的remoteWriteCtx实例，并设置其字段。\n\n最后，如果提供了流聚合配置文件，函数将从文件中加载流聚合器，并设置相关的字段和度量标准。\n\n函数最后返回创建的remoteWriteCtx实例。",
+      "line": 679
     }
   ]
 }

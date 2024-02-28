@@ -8,6 +8,16 @@
       "line": 148
     },
     {
+      "file": "lib/persistentqueue/fastqueue.go",
+      "description": "这段代码定义了一个名为 MustOpenFastQueue 的函数，该函数用于在给定路径下打开一个持久化队列。\n\n函数接受以下参数：\n\npath 和 name：用于指定持久化队列的路径和名称。\nmaxInmemoryBlocks：指定在回退到基于文件的持久化之前，内存中可以保存的最大块数。\nmaxPendingBytes：如果为 0，则队列大小无限制。否则，队列大小由 maxPendingBytes 限制。当队列达到 maxPendingSize 时，最旧的数据将被丢弃。\nisPQDisabled：如果设置为 true，则超过内存缓冲区容量的写请求将被拒绝。在优雅关闭期间，内存队列部分可以存储在磁盘上。\n函数首先调用 mustOpen 函数打开持久化队列，然后创建一个 FastQueue 结构体实例，该实例包含一个指向持久化队列的指针、isPQDisabled 的值，以及一个容量为 maxInmemoryBlocks 的 ByteBuffer 通道。\n\n然后，函数设置 FastQueue 实例的 cond.L 属性为其 mu 属性的地址，并获取当前的 Unix 时间戳设置为 lastInmemoryBlockReadTime。\n\n接下来，函数调用 metrics.GetOrCreateGauge 函数创建或获取一个度量值，该度量值表示持久化队列中待处理的字节数。这个度量值是通过锁定 FastQueue 实例，调用其 pq.GetPendingBytes 方法，然后解锁 FastQueue 实例来获取的。\n\n最后，函数获取 FastQueue 实例中待处理的字节数，记录一条信息日志，然后返回 FastQueue 实例。\n",
+      "line": 50
+    },
+    {
+      "file": "lib/persistentqueue/persistentqueue.go",
+      "description": "这段 Go 语言代码定义了一个名为 tryOpeningQueue 的函数，该函数尝试打开一个持久化队列。这个函数接收五个参数：路径（path）、名称（name）、块文件大小（chunkFileSize）、最大块大小（maxBlockSize）和最大待处理字节数（maxPendingBytes）。函数返回一个队列（queue）指针和一个错误（error）。\n\n函数首先初始化一个 queue 结构体实例 q，并设置其各个字段的值。\n\n然后，函数创建一些度量（metrics）计数器，用于跟踪队列的各种操作。\n\n接下来，函数定义了一个名为 cleanOnError 的函数，该函数在出现错误时关闭队列的读写器。\n\n然后，函数确保路径存在，并创建一个文件锁（flock）文件。如果在后续的操作中出现错误，文件锁将被关闭。\n\n接着，函数尝试从 metainfo 文件中读取元信息。如果文件不存在或读取失败，函数将重新创建元信息文件和初始块文件。\n\n然后，函数读取路径下的所有文件，并尝试找到用于读取和写入的块文件。如果找到的文件不符合预期（例如，文件名不匹配、文件偏移量不正确、文件大小不正确等），函数将记录错误并删除该文件。\n\n最后，函数检查是否找到了用于读取和写入的块文件，以及读取偏移量是否超过了写入偏移量。如果有任何问题，函数将清理资源并返回错误。\n\n这个函数的主要目的是尝试打开一个持久化队列，如果队列的状态不符合预期，函数将尝试修复问题（例如，删除不正确的文件）。如果无法修复问题，函数将返回错误。",
+      "line": 148
+    },
+    {
       "file": "lib/promscrape/config.go",
       "description": "这段 Go 代码定义了一个名为 getScrapeWork 的函数，它是 scrapeWorkConfig 结构体的方法。这个函数接收一个目标字符串，额外的标签，元标签，并返回一个 ScrapeWork 结构体的指针和一个错误。\n\n这个函数的主要工作是处理和配置抓取（scrape）工作。在 Prometheus 中，抓取工作是指从目标服务中获取指标数据。这个函数首先获取一组标签，然后将这些标签与其他标签进行合并。然后，它会应用一些重标签（relabel）配置，移除以 \"_meta\" 开头的标签，并检查标签的数量。如果没有标签，它会将目标丢弃并返回。\n\n接下来，它会检查是否需要跳过抓取工作，这取决于 -promscrape.cluster.* 配置。如果集群成员数量大于1，它会获取抓取工作的集群成员编号，如果当前集群成员ID不在这些编号中，它会将目标丢弃并返回。\n\n然后，它会获取抓取的 URL，如果没有 URL，它会将目标丢弃并返回。如果 URL 无法解析，它会返回一个错误。\n\n接着，它会从标签中读取租户ID，如果存在，它会创建一个新的认证令牌。然后，它会从标签中读取抓取间隔、抓取超时、系列限制和流解析选项。\n\n最后，它会移除以 \"__\" 开头的标签，添加缺失的 \"instance\" 标签，添加集群成员标签（如果存在），然后对标签进行排序，减少内存使用，并创建一个 ScrapeWork 结构体的实例，然后返回这个实例和一个 nil 错误。\n\n这个函数的主要目的是配置和准备抓取工作，包括处理标签，验证 URL，处理认证，读取和设置各种配置选项，以及创建和返回一个 ScrapeWork 结构体的实例。",
       "line": 1085

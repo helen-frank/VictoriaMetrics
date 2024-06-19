@@ -1,0 +1,117 @@
+{
+  "$schema": "https://aka.ms/codetour-schema",
+  "title": "vmalert",
+  "steps": [
+    {
+      "file": "app/vmalert/web.qtpl.go",
+      "description": "使用sync.Pool写的库来提升性能",
+      "line": 947
+    },
+    {
+      "file": "app/vmalert/config/fs.go",
+      "description": "此代码定义了一个函数readFromFS，该函数解析路径列表，为每个路径初始化文件系统 (FS)，从每个FS读取文件，并将文件作为映射返回，其中键是文件名，值是文件的内容。该函数允许在路径列表中混合不同类型的文件系统，并确保每个唯一路径仅初始化一次。如果任何FS初始化失败，则返回错误。",
+      "line": 42
+    },
+    {
+      "file": "app/vmalert/rule/alerting.go",
+      "description": "此代码段为Go中的AlertingRule结构定义了一个名为restore的方法。该方法基于先前写入的时间序列数据恢复活动警报的ActiveAt字段的值。它仅对for值大于0的规则执行还原。\n\n该方法首先检查For值是否小于1，如果是，则返回nil而不执行任何恢复。否则，它将锁定alertsMu互斥体，以确保访问警报映射时的线程安全。\n\n接下来，它使用规则的alertForStateMetricName和标签构造查询表达式。然后，它使用所提供的q查询对象和当前时间ts来执行查询。如果执行查询时出错，则返回错误。\n\n如果响应不包含数据，则它记录调试消息并返回nil。否则，它将遍历响应数据中的每个系列并提取相关标签。然后，它计算标签集的哈希值，并从警报映射中检索相应的警报。如果未找到警报或其状态为 “未挂起”，则会继续到下一个系列。否则，它会将警报的ActiveAt字段设置为序列数据中的时间戳值，将警报标记为已还原，并记录一条指示还原的消息",
+      "line": 602
+    },
+    {
+      "file": "app/vmalert/rule/alerting.go",
+      "description": "在函数内部，将创建一个新的AlertingRule对象，并使用输入参数中的各种属性进行初始化。这些属性包括Type、RuleID、Name、Expr、For、KeepFiringFor、Labels、Annotations、GroupID、GroupName、File、EvalInterval、Debug和q。通过对qb参数调用BuildWithParams方法，传入具有从group参数派生的属性的datasource.QuerierParams对象，可以设置q属性。\n\n该函数还初始化AlertingRule对象的警报和指标属性。alerts属性是uint64键到notifier.Alert值的映射。metrics属性是指向alertingRuleMetrics对象的指针。\n\n最后，该函数使用utils.GetOrCreateGauge和utils.GetOrCreateCounter函数设置各种指标。这些度量用于跟踪AlertingRule对象获取的挂起警报、触发警报、错误、样本和系列的数量。这些指标的标签是使用ar.Name、group.File和ar.ID属性构建的。",
+      "line": 59
+    },
+    {
+      "file": "app/vmalert/rule/utils.go",
+      "description": "这个Go函数requestToCurl接受http.Request作为输入，并以curl命令格式返回请求的字符串表示形式。\n\n以下是该函数的功能:\n\n它检查请求或其URL是否为nil，如果是，则返回一个空字符串。\n它创建一个curlWriter结构来构建curl命令字符串。\n它确定请求URL (http或https) 的架构，并相应地构造请求URL。如果未提供架构，则默认为http，并检查请求是否使用TLS来确定架构。\n如果架构是https，它会将-k标志添加到curl命令以禁用证书验证。\n它将HTTP方法添加到curl命令。\n它从请求中检索所有标头，并按字母顺序对它们进行排序。\n对于每个标头，它向curl命令添加-H标志，后跟标头名称和值。如果标头是秘密标头 (由isSecreteHeader函数确定)，则它将值替换为 <secret>。",
+      "line": 75
+    },
+    {
+      "file": "app/vmalert/rule/group.go",
+      "description": "这段代码定义了Go中Group struct的Start方法。Start方法负责启动组的评估。它需要三个参数: 上下文、返回通知器列表的函数、远程写入客户端和查询器构建器。\n\n下面是代码的分解:\n\n它检查SkipRandSleepOnGroupStart是否为false，如果是，则在使用delayBeforeStart函数开始计算之前计算延迟。\n它使用远程写入客户端、通知程序和先前发送到远程写入客户端的序列创建一个执行器结构。\n它记录组已启动。\n它定义了一个执行组计算的eval函数。\n它为评估创建新的上下文和取消函数。\n它使用新值更新评估上下文和取消函数。\n它使用eval函数执行初始评估。\n它创建一个ticker，以指定的时间间隔安排定期评估。",
+      "line": 315
+    },
+    {
+      "file": "app/vmalert/rule/group.go",
+      "description": "该方法首先递增一个名为execTotal的计数器。然后，它调用Rule对象的exec方法，并将结果存储在tss中，并将任何错误存储在err中。如果err不是context.Cancerled，它会增加一个名为execErrors的计数器，并返回一个错误。\n\n如果Rw不为nil，则它定义一个名为pushToRW的函数，该函数将tss中的每个prompbmarshal.TimeSeries推送到Rw。如果有错误，则返回错误。然后，它使用tss调用pushToRW，并将结果存储在staleeseries中。如果有错误，则返回错误。",
+      "line": 668
+    },
+    {
+      "file": "app/vmalert/rule/group.go",
+      "description": "默认使用alertmanager的send实现",
+      "line": 717
+    },
+    {
+      "file": "app/vmalert/rule/alerting.go",
+      "description": "这段代码定义了一个名为 exec 的函数，用于执行 AlertingRule 中的表达式。它使用提供的 Querier 执行表达式，并根据查询结果维护警报（alerts）。它还处理警报的生命周期（例如，挂起、触发、无效）。它还管理警报的状态、持续时间、样本、查询指标、更新活动警报、解决警报以及处理警报限制。\n\n下面是代码的主要步骤的详细解释：\n\n首先，它记录执行开始的时间，并使用 Querier 执行表达式，获取查询结果和请求信息。\n然后，它创建一个 StateEntry 结构体，用于记录当前执行的状态信息，包括执行开始时间、当前时间、执行时间、返回的样本数、查询到的序列数以及错误信息和请求信息。\n在函数退出时，它将当前执行的状态信息添加到 AlertingRule 的状态列表中，并更新相关指标。",
+      "line": 369
+    },
+    {
+      "file": "app/vmalert/rule/recording.go",
+      "description": "这段代码定义了一个RecordingRule结构体的exec方法。它通过提供的Querier执行规则的表达式。在执行过程中，它记录了执行的状态，处理了错误，并在返回时间序列数据之前检查重复的数据。",
+      "line": 124
+    },
+    {
+      "file": "app/vmalert/remotewrite/client.go",
+      "description": "run方法启动一个无限期运行的goroutine。它使用ticker定期将wr中的数据刷新到远程写入端点。\n\n当关闭c.doneCh通道或取消ctx上下文时，将调用shutdown函数。此功能排空c.input通道并刷新wr中的剩余数据。\n\nrun方法还处理c.input通道上的传入时间序列 (ts)。如果wr中的时间序列数达到c.maxBatchSize，则它将ts附加到wr.Timeseries并刷新wr。",
+      "line": 150
+    },
+    {
+      "file": "app/vmalert/notifier/init.go",
+      "description": "This code defines a function notifiersFromFlags that generates a list of notifiers based on flags. It iterates over a list of addresses, retrieves endpoint parameters, parses them, and constructs an authentication configuration for each address. It then creates a new AlertManager for each address with the specified parameters and adds it to the list of notifiers. Finally, it returns the list of notifiers or an error if there is any issue during the process.",
+      "line": 143
+    },
+    {
+      "file": "app/vmalert/remotewrite/client.go",
+      "description": "此代码段是Go中客户端结构中名为flush的方法。它是封送WriteRequest并将其发送到远程写入端点的阻塞函数。如果请求失败，该函数将执行有限次数的重试。\n\n下面是代码的分解:\n\n它检查WriteRequest是否有任何时间序列。如果没有，它会提前返回。\n它重置WriteRequest并更新缓冲区刷新的持续时间。\n它将WriteRequest封换为protobuf数据，并使用快速压缩对其进行编码。\n它初始化重试间隔和最大重试时间的变量。\n它启动一个用于重试请求的循环。\n在循环中，它使用客户端结构的send方法发送请求。如果错误是io.EOF，它会尝试再次发送请求。\n如果请求成功，则递增已发送行和已发送字节的计数器，并返回。\n如果错误是不可重试的，则退出循环。\n如果请求已被取消，它会记录一个错误并退出循环。\n如果仍有重试时间，它会更新重试间隔并在该持续时间内休眠。\n如果重试间隔大于剩余重试时间，它会将重试间隔更新为剩余重试时间",
+      "line": 207
+    },
+    {
+      "file": "app/vmalert/rule/alerting.go",
+      "description": "此代码段为Go中的AlertingRule结构定义了一个名为alertsToSend的方法。此方法接受三个参数: ts (time.Time值) 、resolveDuration (time.Duration值) 和resendDelay (time.Duration值)。\n\n此方法的目的是筛选和更新AlertingRule结构的警报。它返回一片notifier.Alert结构，应该发送到通知程序。\n\n该方法首先定义一个名为needsSending的内部函数，该函数根据警报的状态和当前时间检查是否应发送警报。如果警报的状态为notifier.StatePending，则返回false; 如果自上次发送以来已解决警报，则返回true; 如果上次发送警报加上重新发送延迟在当前时间之前，则返回true。\n\n然后，该方法迭代ar.alerts切片，并使用needssusing函数检查每个警报。如果警报通过检查，则会根据当前时间以及resolveDuration和resendDelay值更新其End和LastSent字段。然后将更新后的警报附加到警报切片中",
+      "line": 658
+    },
+    {
+      "file": "app/vmalert/main.go",
+      "description": "该函数通过基于命令行标志初始化configCheckCh通道和checkInterval变量开始。如果checkInterval大于0，则创建一个ticker以在指定的时间间隔触发重新加载。\n\n接下来，基于命令行标志初始化变量validateTplFn。如果设置了该标志，则将validateTplFn设置为notifier.ValidateTemplates。\n\n然后，该函数初始化config状态的指标，并将parseFn变量设置为config.Parse。\n\n该函数进入连续监视上下文的Done信道、信号信道sighupCh和configCheckCh信道的循环。如果上下文完成，则函数返回。如果在sighupCh信道上接收到信号，则会记录一条消息，并将parseFn变量设置为config.Parse。如果在configCheckCh信道上接收到信号，则parseFn变量设置为 'config.ParseSilent",
+      "line": 327
+    },
+    {
+      "file": "app/vmalert/main.go",
+      "description": "支持配置文件热重载",
+      "line": 179
+    },
+    {
+      "file": "app/vmalert/rule/group.go",
+      "description": "初始化时读入告警规则",
+      "line": 119
+    },
+    {
+      "file": "app/vmalert/replay.go",
+      "description": "重播函数",
+      "line": 33
+    },
+    {
+      "file": "app/vmalert/rule/group.go",
+      "description": "在每次迭代之后，都有一个睡眠延迟，以允许远程存储有时间刷新磁盘上的数据，以便可以正确计算链接规则",
+      "line": 483
+    },
+    {
+      "file": "app/vmalert/rule/group.go",
+      "description": "RecordingRule 和 AlertingRule 在Prometheus中有不同的作用：\n\nRecordingRule用于定义Prometheus中的新指标或对已有指标进行处理，以便后续查询时使用。它会根据规则计算出新的时间序列，并存储在数据库中，但不会触发警报。这样可以对指标进行处理、聚合或重命名，以便更方便地查询数据。\nAlertingRule用于定义告警规则，当满足某些条件时触发警报。它会对时间序列进行计算，并根据设定的条件判断是否触发告警。一旦触发告警，系统会发送通知或执行配置的动作。\n总结来说，RecordingRule用于处理时间序列数据以便查询，而AlertingRule用于定义告警规则以便触发警报。两者在Prometheus中扮演不同的角色。",
+      "line": 179
+    },
+    {
+      "file": "app/vmalert/rule/alerting.go",
+      "description": "该方法首先使用提供的AlertingRule结构的q字段的QueryRange方法查询规则的表达式。然后迭代结果，并为每个系列使用AlertingRule结构的toLabels方法扩展标签。\n\n对于每个系列，它使用AlertingRule结构的newAlert方法创建警报。然后，它会迭代该系列的值，并根据当前值和上一个值之间的时间差更新警报的状态。如果时间差大于EvalInterval，则警报的状态将重置为Pending。如果时间差大于或等于持续时间，并且警报的状态为 “未触发”，则警报的状态将设置为触发。",
+      "line": 306
+    },
+    {
+      "file": "app/vmalert/main.go",
+      "description": "重发入口",
+      "line": 153
+    }
+  ],
+  "ref": "c1101182f032b7049b2fd0fd40697b9fa9a311cc"
+}
